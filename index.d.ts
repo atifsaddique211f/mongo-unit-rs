@@ -1,4 +1,4 @@
-declare module 'mongo-unit' {
+declare module 'mongo-unit-rs' {
     /**
      * @returns Url to connect to the created db.
      */
@@ -14,9 +14,9 @@ declare module 'mongo-unit' {
 
     export function drop(): Promise<void>;
 
-    export function initDb(data: object): Promise<void>;
+    export function initDb(url: string, data: object): Promise<void>;
 
-    export function dropDb(): Promise<void>;
+    export function dropDb(url: string): Promise<void>;
 
     export interface MongodOptions {
         port: number;

@@ -1,4 +1,6 @@
-# mongo-unit
+# mongo-unit-rs
+
+This library is build upon [mongo-unit](https://github.com/mikhail-angelov/mongo-unit) and adds replicaSet option
 
 This library is done to simplify creation of integration tests for node.js application with Mongo DB.
 I starts local mongodb process using [mongodb-memory-server](https://github.com/nodkz/mongodb-memory-server) library, 
@@ -23,7 +25,7 @@ add init.spec.js
 
 ```javascript
 //init.spec.js
-const mongoUnit = require('mongo-unit')
+const mongoUnit = require('@univision/mongo-unit-rs')
 
 mongoUnit.start().then(() => {
   console.log('fake mongo is started: ', mongoUnit.getUrl())
@@ -88,7 +90,7 @@ Mocha test
 ```javascript
 //dao.spec.js
 const {expect} = require('chai')
-const mongoUnit = require('mongo-unit')
+const mongoUnit = require('@univision/mongo-unit-rs')
 const testData = require('./data.json')
 const daoUT = require('./dao')
 describe('dao', ()=>{
@@ -118,21 +120,19 @@ describe('dao', ()=>{
 ```
 
 ## General info
-[![CircleCI](https://circleci.com/gh/mikhail-angelov/mongo-unit.svg?style=svg)](https://circleci.com/gh/mikhail-angelov/mongo-unit)
-
 I was inspired by [dbUnit](http://dbunit.sourceforge.net) library, which is very popular in java world.
 
 > There is alternative library for mocking Mongo: [mockgoose](https://github.com/mockgoose/mockgoose)
   
 ## Requirements
-It works on Node.js 12+
+It works on Node.js 10+
 
 ## Installation
-`npm install -D mongo-unit`
+`npm install -D @univision/mongo-unit-rs`
 
 ## Run test in docker example
-`docker build -t mongo-unit .`
-`docker run -it mongo-unit`
+`docker build -t mongo-unit-rs .`
+`docker run -it mongo-unit-rs`
 
 ## API
 
@@ -142,7 +142,7 @@ It starts mongod on one of available port and returns Promise with URL to connec
 
 * `opts.port` - preferable mongo db port, default: `27017`
 * `opts.dbName` - name of test db, default: `test`
-* `opts.dbpath` - db path, default: `<node_modules/mongo-unit>\.mongo-unit`
+* `opts.dbpath` - db path, default: `<node_modules/@univision/mongo-unit-rs>\.mongo-unit-rs`
 * `opts.verbose` - enable debug logs, default: `false`
 * `opts.version` - specify which version of mongo to download. e.g. `version=v3.6`
 *  `opts.useReplicateSet` - specify we want to start the memory server as a `MongoMemoryReplSet` needed to support transactions, default: `false`
@@ -179,10 +179,11 @@ Clear collections based on given data (data format is the same), returns Promise
 ### `drop()`
 Drops test DB, returns Promise.
 
-### `initDb(data)`
-helper function, load db data into mongo
+### `initDb(url, data)`
+helper function, load db data into mongo (url)
 
-### `dropDb()`
-helper function, clear all db data from mongo
+### `dropDb(url)`
+helper function, clear all db data from mongo (url)
 
 
+This library is forked from https://github.com/mikhail-angelov/mongo-unit

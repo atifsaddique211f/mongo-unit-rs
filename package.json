@@ -1,6 +1,6 @@
 {
-  "name": "mongo-unit",
-  "version": "3.0.0",
+  "name": "@univision/mongo-unit-rs",
+  "version": "1.0.1",
   "description": "mongo db for unit tests",
   "main": "index.js",
   "types": "index.d.ts",
@@ -13,7 +13,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/mikhail-angelov/mongo-unit.git"
+    "url": "https://github.com/televisa-univision/mongo-unit-rs"
   },
   "keywords": [
     "js",
@@ -25,26 +25,27 @@
     "mongo",
     "mongodb",
     "mongoose",
+    "mongo-unit-replica-set",
     "mongodb-memory-server"
   ],
-  "author": "Mikhail Angelov",
+  "author": "Atif Saddique",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/mikhail-angelov/mongo-unit/issues"
+    "url": "https://github.com/televisa-univision/mongo-unit-rs/issues"
   },
-  "homepage": "https://github.com/mikhail-angelov/mongo-unit#readme",
+  "homepage": "https://github.com/televisa-univision/mongo-unit-rs#readme",
   "dependencies": {
-    "debug": "^4.3.3",
-    "mongodb": "^4.3.1",
-    "mongodb-memory-server": "^8.3.0",
-    "portfinder": "^1.0.28",
-    "ps-node": "^0.1.6"
+    "debug": "^3.0.1",
+    "mongodb": "^3.3.3",
+    "mongodb-memory-server": "^6.3.1",
+    "portfinder": "^1.0.10",
+    "ps-node": "^0.1.4"
   },
   "devDependencies": {
     "chai": "^3.5.0",
     "co": "^4.6.0",
-    "mocha": "^9.2.0",
-    "mongoose": "^6.2.1",
+    "mocha": "^7.1.0",
+    "mongoose": "^5.7.7",
     "prettier": "^1.19.1"
   }
 }

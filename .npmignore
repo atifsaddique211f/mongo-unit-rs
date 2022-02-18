@@ -1,3 +1,4 @@
 examples
 .travis.yml
 test.js
+.idea

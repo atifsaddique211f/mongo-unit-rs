@@ -5,9 +5,9 @@ const MongoClient = require('mongodb').MongoClient
 const { MongoMemoryServer, MongoMemoryReplSet } = require('mongodb-memory-server')
 const fs = require('fs')
 const ps = require('ps-node')
-const debug = Debug('mongo-unit')
+const debug = Debug('mongo-unit-rs')
 
-const dataFolder = '/.mongo-unit'
+const dataFolder = '/.mongo-unit-rs'
 const defaultTempDir = __dirname + dataFolder
 const defaultMongoOpts = {
   dbName: 'test',
@@ -80,7 +80,7 @@ function runMongo(opts, port) {
 function start(opts) {
   const mongo_opts = Object.assign(defaultMongoOpts, opts || {})
   if (mongo_opts.verbose) {
-    Debug.enable('mongo-unit')
+    Debug.enable('mongo-unit-rs')
     Debug.enable('*')
   }
   if (dbUrl) {
@@ -112,7 +112,7 @@ function getUrl() {
   if (dbUrl) {
     return dbUrl
   } else {
-    throw new Error('Please start mongo-unit first, then use this API')
+    throw new Error('Please start mongo-unit-rs first, then use this API')
   }
 }
 
