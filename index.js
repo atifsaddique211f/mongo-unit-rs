@@ -2,7 +2,7 @@
 const Debug = require('debug')
 const portfinder = require('portfinder')
 const MongoClient = require('mongodb').MongoClient
-const { MongoMemoryServer } = require('mongodb-memory-server')
+const { MongoMemoryServer, MongoMemoryReplSet } = require('mongodb-memory-server')
 const fs = require('fs')
 const ps = require('ps-node')
 const debug = Debug('mongo-unit')
@@ -13,6 +13,7 @@ const defaultMongoOpts = {
   dbName: 'test',
   dbpath: defaultTempDir,
   port: 27017,
+  useReplicaSet: false
 }
 
 let mongod = null
@@ -20,23 +21,60 @@ let dbUrl = null
 let client
 let dbName
 
-async function runMongo(opts, port) {
+function runMongo(opts, port) {
   const options = {
-    instance: {
+    autoStart: false
+  }
+
+  if (opts.version) {
+    options.binary = { version: opts.version }
+  }
+
+  let startPromise
+  if (opts.useReplicaSet) {
+    options.instanceOpts = [
+      {
+        port: port,
+        dbPath: opts.dbpath,
+        storageEngine: 'wiredTiger',
+      }
+    ]
+
+    options.replSet = {
+      dbName: opts.dbName,
+      storageEngine: 'wiredTiger'
+    }
+
+    mongod = new MongoMemoryReplSet(options)
+
+    startPromise = mongod.start().then(() => mongod.waitUntilRunning())
+  } else {
+    options.instance = {
       port: port,
       dbPath: opts.dbpath,
       dbName: opts.dbName,
       storageEngine: 'ephemeralForTest',
-    },
-    autoStart: false,
+    }
+
+    mongod = new MongoMemoryServer(options)
+    startPromise = mongod.start()
   }
-  if (opts.version) {
-    options.binary = { version: opts.version }
-  }
-  mongod = await MongoMemoryServer.create(options)
-  dbUrl = mongod.getUri()
-  client = await MongoClient.connect(dbUrl, { useUnifiedTopology: true })
-  return dbUrl
+
+  return startPromise
+      .then(() => {
+        return mongod.getDbName()
+      })
+      .then(dbName => {
+        dbUrl = 'mongodb://localhost:' + port + '/' + dbName
+        debug(`mongo is started on ${dbUrl}`)
+        return dbUrl
+      })
+      .then(url => MongoClient.connect(url, { useUnifiedTopology: true }))
+      .then(dbClient => {
+        client = dbClient
+        return dbUrl
+      })
+      .catch(err => console.error(err))
 }
 
 function start(opts) {
@@ -48,10 +86,10 @@ function start(opts) {
   if (dbUrl) {
     return Promise.resolve(dbUrl)
   } else {
-    makeSureTempDirExist(mongo_opts.dbpath)
+    makeSureTempDirExist(mongo_opts.dbpath, mongo_opts.useReplicaSet)
     return makeSureOtherMongoProcessesKilled(mongo_opts.dbpath)
-      .then(() => getFreePort(mongo_opts.port))
-      .then(port => runMongo(mongo_opts, port))
+        .then(() => getFreePort(mongo_opts.port))
+        .then(port => runMongo(mongo_opts, port))
   }
 }
 
@@ -59,11 +97,15 @@ function delay(time) {
   return new Promise(resolve => setTimeout(resolve, time))
 }
 
-async function stop() {
-  await  client.close(true)
-  await mongod.stop()
-  dbUrl = null
-  await delay(100) //this is small delay to make sure kill signal is sent
+function stop() {
+  return client
+      .close(true)
+      .then(() => mongod.stop())
+      .then(() => {
+        // mongodHelper && mongodHelper.mongoBin.childProcess.kill()
+        dbUrl = null
+        return delay(100) //this is small delay to make sure kill signal is sent
+      })
 }
 
 function getUrl() {
@@ -99,19 +141,22 @@ function drop() {
 function getFreePort(possiblePort) {
   portfinder.basePort = possiblePort
   return new Promise((resolve, reject) =>
-    portfinder.getPort((err, port) => {
-      if (err) {
-        debug(`cannot get free port: ${err}`)
-        reject(err)
-      } else {
-        resolve(port)
-      }
-    })
+      portfinder.getPort((err, port) => {
+        if (err) {
+          debug(`cannot get free port: ${err}`)
+          reject(err)
+        } else {
+          resolve(port)
+        }
+      })
   )
 }
 
-function makeSureTempDirExist(dir) {
+function makeSureTempDirExist(dir, useReplicaSet) {
   try {
+    if (useReplicaSet) {
+      fs.rmdirSync(dir, { recursive: true })
+    }
     fs.mkdirSync(dir)
   } catch (e) {
     if (e.code !== 'EEXIST') {
@@ -124,35 +169,35 @@ function makeSureTempDirExist(dir) {
 function makeSureOtherMongoProcessesKilled(dataFolder) {
   return new Promise((resolve, reject) => {
     ps.lookup(
-      {
-        psargs: ['-A'],
-        command: 'mongod',
-        arguments: dataFolder,
-      },
-      (err, resultList) => {
-        if (err) {
-          console.log('ps-node error', err)
-          return reject(err)
-        }
-
-        resultList.forEach(process => {
-          if (process) {
-            console.log(
-              'KILL PID: %s, COMMAND: %s, ARGUMENTS: %s',
-              process.pid,
-              process.command,
-              process.arguments
-            )
-            ps.kill(process.pid)
+        {
+          psargs: ['-A'],
+          command: 'mongod',
+          arguments: dataFolder,
+        },
+        (err, resultList) => {
+          if (err) {
+            console.log('ps-node error', err)
+            return reject(err)
           }
-        })
-        return resolve()
-      }
+
+          resultList.forEach(process => {
+            if (process) {
+              console.log(
+                  'KILL PID: %s, COMMAND: %s, ARGUMENTS: %s',
+                  process.pid,
+                  process.command,
+                  process.arguments
+              )
+              ps.kill(process.pid)
+            }
+          })
+          return resolve()
+        }
     )
   })
 }
 
-function initDb(data) {
+function initDb(url, data) {
   const db = client.db(dbName)
   const requests = Object.keys(data).map(col => {
     const collection = db.collection(col)
@@ -161,7 +206,7 @@ function initDb(data) {
   return Promise.all(requests)
 }
 
-function dropDb() {
+function dropDb(url) {
   const db = client.db(dbName)
   return db.collections().then(collections => {
     const requests = collections.map(col => col.drop())
